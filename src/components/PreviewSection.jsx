@@ -43,7 +43,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         "#993300", // Brown
       ];
     
-    // Debounced function to update text
+    // debounced function to update text while bettering performance
     const debouncedUpdateText = useCallback((text) => {
         if (debounceTimer.current) {
             clearTimeout(debounceTimer.current);
@@ -60,7 +60,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         }, 100); // 100ms debounce
     }, []);
 
-    // Initialize the canvas only once when component mounts
+    // initialize the canvas only once when component mounts
     useEffect(() => {
         if (canvasRef.current && !fabricRef.current) {
             console.log("Initializing canvas");
@@ -68,7 +68,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                 width: canvasDimensions.width,
                 height: canvasDimensions.height,
                 backgroundColor: "#D0D0D0",
-                renderOnAddRemove: false // Disable automatic rendering
+                renderOnAddRemove: false // disable automatic rendering for performance
             });
         }
         
@@ -81,14 +81,14 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         };
     }, []);
     
-    // Resize canvas when dimensions change
+    // resize canvas when dimensions change
     useEffect(() => {
         if (fabricRef.current) {
             console.log("Resizing canvas to:", canvasDimensions);
             fabricRef.current.setWidth(canvasDimensions.width);
             fabricRef.current.setHeight(canvasDimensions.height);
             
-            // Add a textbox if it doesn't exist yet
+            // add a textbox if it doesn't exist yet
             const existingTextboxes = fabricRef.current.getObjects().filter(obj => obj.type === 'textbox');
             if (existingTextboxes.length === 0) {
                 const textbox = new fabric.Textbox('Sample Text', {
@@ -126,7 +126,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         }
     }, [canvasDimensions]);
     
-    // Handle file upload using two-step approach
+    // handle file upload using two-step approach
     useEffect(() => {
         if (!uploadedFile || !fabricRef.current) return;
         
@@ -158,17 +158,17 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                     scaleY: maxHeight / img.height,
                     originX: 'left',
                     originY: 'top',
-                    selectable: false,  // Make image non-selectable
-                    evented: false      // Prevent all events on the image
+                    selectable: false,  // make image non-selectable so that user cannot move it around
+                    evented: false      // prevent all events on the image
                 });
                 
-                // Clear canvas
+                // clear canvas
                 fabricRef.current.clear();
                 
-                // Add the image as a regular object first
+                // add the image as a regular object first
                 fabricRef.current.add(fabricImg);
                 
-                // Send it to back so text stays on top
+                // send it to back so text stays on top
                 fabricImg.sendToBack();
                 
                 console.log("Image added to canvas");
@@ -178,7 +178,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
             } catch (error) {
                 console.error("Error creating Fabric image:", error);
                 
-                // Fallback: Try an alternative approach
+                // fallback: Try an alternative approach in case of deprecation
                 try {
                     fabric.Image.fromURL(fileUrl, function(fabricImg) {
                         fabricRef.current.clear();
@@ -213,7 +213,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         };
     }, [uploadedFile]);
     
-    // Add this useEffect to handle font size changes
+    // made to handle changes in font size of textbox
     useEffect(() => {
         if (fabricRef.current) {
             const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
@@ -224,15 +224,18 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         }
     }, [fontSize]);
 
+
+    // adding a name to the list
     const handleNameAdd = (e) => {
         setNames([...names, currentName])
     }
 
+    // deleting a name from the names list
     const handleNameDelete = (nameToDelete) => {
         setNames(names.filter(name => name !== nameToDelete));
     };
     
-
+    // made to handle changes in text color of textbox
     useEffect(()=>{    
         if (fabricRef.current) {
             const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
@@ -243,6 +246,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         }
     }, [color])
 
+    // made to handle changes in font family of textbox
     useEffect(()=>{    
         if (fabricRef.current) {
             const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
@@ -253,18 +257,18 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         }
     }, [font])
     
-    // Add this function inside your component
+    // function made to download only the sample image
     const handleDownload = () => {
         if (!fabricRef.current) return;
 
-        // Convert canvas to data URL and trigger download
+        // convert canvas to data URL and trigger download
         const dataURL = fabricRef.current.toDataURL({
             format: 'png',
             quality: 1,
             multiplier: 1
         });
 
-        // Create temporary link and trigger download
+        // create temp link and trigger download
         const link = document.createElement('a');
         link.download = `invitation-${Date.now()}.png`;
         link.href = dataURL;
@@ -273,47 +277,47 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         document.body.removeChild(link);
     };
 
-    // Add this new function inside the PreviewSection component
+    // the holy function that takes the names, and stores the invitations in a zip and downloads.
     const handleDownloadAll = async () => {
         if (!fabricRef.current || names.length === 0) return;
 
         const zip = new JSZip();
         
-        // Create a folder in the zip for the images
+        // create a folder in the zip for the images
         const imagesFolder = zip.folder("invitations");
 
-        // Create a promise array for all image generations
+        // create a promise array for all image generations
         const imagePromises = names.map(async (name) => {
-            // Find the textbox
+            // find the textbox location
             const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
             if (!textbox) return;
 
-            // Store original text
+            // store the original text
             const originalText = textbox.text;
 
-            // Update text to current name
+            // update text to current name
             textbox.set('text', name);
             fabricRef.current.renderAll();
 
-            // Generate data URL for this name
+            // generate data URL for this name
             const dataURL = fabricRef.current.toDataURL({
                 format: 'png',
                 quality: 1,
                 multiplier: 1
             });
 
-            // Add to zip
+            // add to zip
             imagesFolder.file(`${name}.png`, dataURL.split(',')[1], {base64: true});
 
-            // Restore original text
+            // restore original text
             textbox.set('text', originalText);
             fabricRef.current.renderAll();
         });
 
-        // Wait for all images to be generated
+        // wait for all images to be generated
         await Promise.all(imagePromises);
 
-        // Generate and download the zip file
+        // generate and download the zip file
         const content = await zip.generateAsync({type: "blob"});
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
@@ -323,11 +327,12 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         document.body.removeChild(link);
     };
 
+    // made to get the image scale correct depending the size of the screen, was made to avoid the whitespace bug
     const getScaleFactor = () => {
         if (canvasDimensions.width === 0 || canvasDimensions.height === 0) return 0.5;
         
-        const displayWidth = window.innerWidth > 640 ? 400 : 300; // Adjust based on screen size
-        return Math.min(displayWidth / canvasDimensions.width, 0.5); // Cap at 0.5 scale
+        const displayWidth = window.innerWidth > 640 ? 400 : 300; 
+        return Math.min(displayWidth / canvasDimensions.width, 0.5); // cap at 0.5 scale
     };
 
     return (

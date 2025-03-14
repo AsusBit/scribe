@@ -4,12 +4,16 @@ import PreviewSection from './components/PreviewSection';
 import logo from './assets/Logo.svg'
 import gh from './assets/github.svg'
 import { useState } from 'react';
+import { Analytics } from "@vercel/analytics/react"
+
 
 function App() {
 
   const [selectedFile, setSelectedFile] = useState(null);
-  const [showPreview, setShowPreview] = useState(false)
+  const [showPreview, setShowPreview] = useState(false);
+  const [Err, setErr] = useState(<></>);
 
+  // this function checks if file is an image, saves the file if it is, alerts user if it is not
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
@@ -19,6 +23,7 @@ function App() {
     }
   };
 
+  // this is a replacement function to scroll down when user clicks on the Get Startedd button
   const scrollToUpload = (e) => {
     e.preventDefault();
     const uploadSection = document.getElementById('upload');
@@ -26,6 +31,16 @@ function App() {
       uploadSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  // made to fix the bug where a user can leave to the PreviewSection without uploading an image
+  const handleProceed = () => {
+    if (selectedFile !== null){
+      setShowPreview(true);
+      setErr(<></>)
+    } else {
+      setErr(<p className='text-[#f00]'>You have to upload your image first!</p>)
+    }
+  }
 
   return (
     <div className=''>
@@ -44,11 +59,13 @@ function App() {
 
       </div>
 
-      
+      <Analytics/>
 
       {/* Upload Section */}
-      {!showPreview && <form onSubmit={(e)=>e.preventDefault()} id="upload" className='flex justify-center items-center my-[20rem]'>
+      {!showPreview && <form onSubmit={(e)=>e.preventDefault()} id="upload" className='flex flex-col justify-center items-center my-[20rem]'>
+  {Err}
         <div className='bg-scribe-ivory w-fit p-1 sm:w-[40rem] h-[20rem] space-y-5 rounded justify-center items-center flex flex-col'>
+
           <p className='text-scribe-gray font-book font-bold text-center text-2xl sm:text-4xl'>Upload Your Image</p>
           <div className='flex space-x-2 items-center justify-center' >
           <input 
@@ -63,7 +80,7 @@ function App() {
           <ScribeButton 
             size='lg' 
             title={"Upload & Process"} 
-            fun={()=>setShowPreview(true)}
+            fun={handleProceed}
           />
         </div>
       </form>}
