@@ -90,7 +90,7 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 Hamzah AlNofli - hamzahalnofli@protonmail.com
 
-Project Link: [https://github.com/yourusername/scribe](https://github.com/yourusername/scribe)
+Project Link: [https://scribe-one.vercel.app/](https://scribe-one.vercel.app/)
 
 ## Future Enhancements
 
