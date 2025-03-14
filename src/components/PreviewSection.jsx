@@ -425,6 +425,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                         />
                         <button className="w-[4rem] bg-scribe-green text-scribe-ivory rounded-r" onClick={handleNameAdd}>Add</button>
                     </div>
+                    
 
                     <div className="max-h-[200px] overflow-y-auto">
                         {names.map((name, key)=>(
