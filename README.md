@@ -96,9 +96,7 @@ Project Link: [https://scribe-one.vercel.app/](https://scribe-one.vercel.app/)
 
 - Additional font options
 - More customization tools
-- Template saving functionality
-- Cloud storage integration
-- Collaborative editing features
+- Loading name lists from CSV or XLSX files
 
 ---
 
