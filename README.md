@@ -1,70 +1,105 @@
-# Getting Started with Create React App
+# Scribe - Write Once, Invite All
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+![Scribe Logo](public/logo192.png)
 
-## Available Scripts
+Scribe is a web application that simplifies the process of creating personalized invitations for multiple recipients. Upload a single invitation design and customize it for each guest with just a few clicks.
 
-In the project directory, you can run:
+## Features
 
-### `npm start`
+- **Image Upload**: Support for PNG and JPEG formats
+- **Real-time Preview**: See your changes as you make them
+- **Text Customization**:
+  - Multiple font options
+  - Adjustable font size
+  - Various color choices
+  - Draggable text positioning
+  - Rotation and scaling capabilities
+- **Batch Processing**: Generate multiple personalized invitations at once
+- **Bulk Download**: Download all variations as a ZIP file
+- **Responsive Design**: Works on both desktop and mobile devices
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Getting Started
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### Prerequisites
 
-### `npm test`
+- Node.js (v16 or higher)
+- npm (v7 or higher)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Installation
 
-### `npm run build`
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/scribe.git
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. Navigate to the project directory:
+```bash
+cd scribe
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. Install dependencies:
+```bash
+npm install
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+4. Start the development server:
+```bash
+npm start
+```
 
-### `npm run eject`
+The application will open in your default browser at `http://localhost:3000`.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Usage
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Click "Get Started" or scroll to the upload section
+2. Upload your invitation image
+3. Use the customization tools to:
+   - Add and position text
+   - Choose fonts and colors
+   - Adjust text size
+4. Add recipient names to the list
+5. Download individual invitations or generate all at once
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Built With
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+- [React](https://reactjs.org/) - Frontend framework
+- [Fabric.js](http://fabricjs.com/) - Canvas manipulation
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [JSZip](https://stuk.github.io/jszip/) - ZIP file generation
 
-## Learn More
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Contributing
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+   
 
-### Code Splitting
+## License
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
-### Analyzing the Bundle Size
+## Acknowledgments
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+- Font families provided by Google Fonts
+- Icons and design inspiration from various open-source projects (svgrepo.com)
 
-### Making a Progressive Web App
+## Contact
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Hamzah AlNofli - hamzahalnofli@protonmail.com
 
-### Advanced Configuration
+Project Link: [https://github.com/yourusername/scribe](https://github.com/yourusername/scribe)
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Future Enhancements
 
-### Deployment
+- Additional font options
+- More customization tools
+- Template saving functionality
+- Cloud storage integration
+- Collaborative editing features
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Made by [Hamzah AlNofli](https://github.com/AsusBit)
