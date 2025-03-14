@@ -1,6 +1,6 @@
 import ScribeButton from "./ScribeButton"
 import * as fabric from 'fabric'
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import FontDropdown from './FontDropdown'
 import JSZip from 'jszip'
 
@@ -13,8 +13,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
     const [font, setFont] = useState("Arial")
     const [canvasDimensions, setCanvasDimensions] = useState({ width: 400, height: 400 });
     const [imageLoaded, setImageLoaded] = useState(false);
-    const [textPosition, setTextPosition] = useState({ x: 0, y: 0 });
     const [currentName, setCurrentName] = useState("Sample Text")
+    const debounceTimer = useRef(null);
     const colorsAll = [
         "#000000", // Black
         "#7F7F7F", // Dark Gray
@@ -43,6 +43,23 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         "#993300", // Brown
       ];
     
+    // Debounced function to update text
+    const debouncedUpdateText = useCallback((text) => {
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+        }
+        
+        debounceTimer.current = setTimeout(() => {
+            if (fabricRef.current) {
+                const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
+                if (textbox) {
+                    textbox.set('text', text);
+                    fabricRef.current.renderAll();
+                }
+            }
+        }, 100); // 100ms debounce
+    }, []);
+
     // Initialize the canvas only once when component mounts
     useEffect(() => {
         if (canvasRef.current && !fabricRef.current) {
@@ -50,7 +67,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
             fabricRef.current = new fabric.Canvas(canvasRef.current, {
                 width: canvasDimensions.width,
                 height: canvasDimensions.height,
-                backgroundColor: "#D0D0D0"
+                backgroundColor: "#D0D0D0",
+                renderOnAddRemove: false // Disable automatic rendering
             });
         }
         
@@ -78,7 +96,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                     top: canvasDimensions.height / 2,
                     width: 200,
                     fontSize: fontSize,
-                    fill: "#FFFF",
+                    fill: color,
                     backgroundColor: 'transparent',
                     fontFamily: font,
                     textAlign: 'center',
@@ -93,12 +111,6 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                 });
                 
                 textbox.on({
-                    'modified': function() {
-                        setTextPosition({
-                            x: Math.round(textbox.left),
-                            y: Math.round(textbox.top)
-                        });
-                    },
                     'rotating': function() {
                         fabricRef.current.renderAll();
                     },
@@ -319,8 +331,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
     };
 
     return (
-        <div className="flex justify-center items-center rounded px-4">
-            <div className="bg-scribe-ivory w-full max-w-[70rem] min-h-[50rem] rounded-xl my-10 pb-10">
+        <div className="flex flex-col my-[18rem]">
+            <div className="bg-scribe-ivory w-full max-w-[70rem] flex-1 rounded-xl my-10 pb-10 mx-auto">
                 <h1 className="font-book text-2xl md:text-4xl px-2 py-3 font-bold">Preview</h1>
 
                 <div className="flex justify-center">
@@ -333,28 +345,28 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                 
                 {/* Canvas Area */}
                 <div className="flex justify-center items-center">
-    <div className="relative" style={{
-        width: canvasDimensions.width * getScaleFactor(), 
-        height: canvasDimensions.height * getScaleFactor(),
-        overflow: 'hidden'
-    }}>
-        <div style={{
-            transform: `scale(${getScaleFactor()})`,
-            transformOrigin: 'top left',
-            width: canvasDimensions.width,
-            height: canvasDimensions.height
-        }}>
-            <canvas 
-                ref={canvasRef} 
-                style={{ 
-                    border: '1px solid #ccc',
-                    width: canvasDimensions.width,
-                    height: canvasDimensions.height
-                }}
-            />
-        </div>
-    </div>
-</div>
+                    <div className="relative" style={{
+                        width: canvasDimensions.width * getScaleFactor(), 
+                        height: canvasDimensions.height * getScaleFactor(),
+                        overflow: 'hidden'
+                    }}>
+                        <div style={{
+                            transform: `scale(${getScaleFactor()})`,
+                            transformOrigin: 'top left',
+                            width: canvasDimensions.width,
+                            height: canvasDimensions.height
+                        }}>
+                            <canvas 
+                                ref={canvasRef} 
+                                style={{ 
+                                    border: '1px solid #ccc',
+                                    width: canvasDimensions.width,
+                                    height: canvasDimensions.height
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
                     {uploadedFile && (
                         <p className='font-finlandica text-scribe-gray mt-2 text-center break-all'>
                             {uploadedFile.name}
@@ -375,7 +387,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                     />
                 </div>
 
-                {/* Reupload area */}
+            {/* Reupload area */}
                 <form onSubmit={(e)=>e.preventDefault()} className='flex flex-col my-[2rem] px-4'>
                     <div className='bg-scribe-ivory space-y-5 rounded flex flex-col'>
                         <p className='text-scribe-gray font-book font-bold text-2xl md:text-4xl'>Reupload Your Image</p>
@@ -387,11 +399,11 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                                 required  
                                 className={`file:font-book file:border-0 file:bg-scribe-brown file:font-bold file:text-scribe-yellow file:w-full md:file:w-[8rem] file:rounded file:h-[4rem] file:transition-all file:duration-50 file:active:shadow-none file:cursor-pointer file:mr-4 w-full`}
                             />
-                        </div>
-                    </div>
+      </div>
+      </div>
                 </form>
 
-                {/* Customize area */}
+        {/* Customize area */}
                 <div className="px-4 py-3 space-y-2">
                     <h1 className="font-book text-2xl md:text-4xl font-bold">Customize</h1>
 
@@ -402,14 +414,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                             placeholder="Add a name" 
                             className="w-full py-2 rounded-l px-2 rounded-r-none border-[#000] border"
                             onChange={(e) => {
-                                if (fabricRef.current) {
-                                    const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
-                                    if (textbox) {
-                                        textbox.set('text', e.target.value);
-                                        setCurrentName(e.target.value)
-                                        fabricRef.current.renderAll();
-                                    }
-                                }
+                                setCurrentName(e.target.value);
+                                debouncedUpdateText(e.target.value);
                             }}
                         />
                         <button className="w-[4rem] bg-scribe-green text-scribe-ivory rounded-r" onClick={handleNameAdd}>Add</button>
@@ -427,7 +433,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                                 </button>
                             </div>
                         ))}
-                    </div>
+      </div>
 
                     <p className="font-finlandica font-bold text-lg md:text-xl">Fonts</p>
                     <FontDropdown 
@@ -442,6 +448,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                         <div className="flex items-center space-x-2">
                             <input 
                                 type="range" 
+                                min="10"
+                                max="200"
                                 value={fontSize} 
                                 onChange={(e)=>setFontSize(e.target.value)} 
                                 className="flex-grow"
@@ -462,7 +470,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                         ))}
                     </div>
                 </div>
-            </div>
+        </div>
         </div>
     )
 }

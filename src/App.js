@@ -3,18 +3,12 @@ import ScribeButton from './components/ScribeButton';
 import PreviewSection from './components/PreviewSection';
 import logo from './assets/Logo.svg'
 import gh from './assets/github.svg'
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 
 function App() {
 
-  // CLEANUP STEPS
-  // fix footer for phone
-  // fix jitter and errors on phone
-  // ads?
-
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false)
-  const fileInputRef = useRef(null);
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -34,10 +28,10 @@ function App() {
   };
 
   return (
-    <div>
+    <div className=''>
 
       {/* intro */}
-      <div className='flex flex-col justify-center items-center h-screen space-y-5 duration-100 ease-in-out'>
+      <div className='flex flex-col justify-center items-center my-[18rem] space-y-5 duration-100 ease-in-out'>
         <h1 className="text-4xl sm:text-7xl font-bold text-scribe-gray font-book">Write Once, Invite All</h1>
         <p className='text-[1rem] sm:text-xl text-scribe-gray mt-10'>Making invitations easier than ever.</p>
         <a 
@@ -53,7 +47,7 @@ function App() {
       
 
       {/* Upload Section */}
-      {!showPreview && <form onSubmit={(e)=>e.preventDefault()} id="upload" className='flex justify-center items-center min-h-screen'>
+      {!showPreview && <form onSubmit={(e)=>e.preventDefault()} id="upload" className='flex justify-center items-center my-[20rem]'>
         <div className='bg-scribe-ivory w-fit p-1 sm:w-[40rem] h-[20rem] space-y-5 rounded justify-center items-center flex flex-col'>
           <p className='text-scribe-gray font-book font-bold text-center text-2xl sm:text-4xl'>Upload Your Image</p>
           <div className='flex space-x-2 items-center justify-center' >

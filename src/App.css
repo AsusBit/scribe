@@ -2,10 +2,6 @@
 @tailwind components
 @tailwind utilities
 
-html {
-  scroll-behavior: smooth;
-}
-
 .App {
   text-align: center;
 }
@@ -37,6 +33,25 @@ html {
 
 .App-link {
   color: #61dafb;
+}
+
+:root {
+  --app-height: 100%;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+  }
+}
+
+
+.h-screen {
+  height: var(--app-height);
+}
+
+.min-h-screen {
+  min-height: var(--app-height);
 }
 
 @keyframes App-logo-spin {
