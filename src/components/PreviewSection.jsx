@@ -43,7 +43,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         "#6600CC", // Violet
         "#993300", // Brown
     ];
-    
+     
     // debounced function to update text while bettering performance
     const debouncedUpdateText = useCallback((text) => {
         if (debounceTimer.current) {
