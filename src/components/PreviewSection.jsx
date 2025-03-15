@@ -3,17 +3,18 @@ import * as fabric from 'fabric'
 import { useEffect, useRef, useState, useCallback } from "react"
 import FontDropdown from './FontDropdown'
 import JSZip from 'jszip'
+import heic2any from 'heic2any'
 
 export default function PreviewSection({uploadedFile, handleFileSelect}){
     const canvasRef = useRef(null)
     const fabricRef = useRef(null);
-    const [fontSize, setFontSize] = useState(40)
     const [names, setNames] = useState([])
-    const [color, setColor] = useState("#000")
+    const [color, setColor] = useState("#fff")
     const [font, setFont] = useState("Arial")
     const [canvasDimensions, setCanvasDimensions] = useState({ width: 400, height: 400 });
     const [imageLoaded, setImageLoaded] = useState(false);
     const [currentName, setCurrentName] = useState("Sample Text")
+    const [isConverting, setIsConverting] = useState(false);
     const debounceTimer = useRef(null);
     const colorsAll = [
         "#000000", // Black
@@ -41,7 +42,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         "#339966", // Teal
         "#6600CC", // Violet
         "#993300", // Brown
-      ];
+    ];
     
     // debounced function to update text while bettering performance
     const debouncedUpdateText = useCallback((text) => {
@@ -59,7 +60,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
             }
         }, 100); // 100ms debounce
     }, []);
-
+    
     // initialize the canvas only once when component mounts
     useEffect(() => {
         if (canvasRef.current && !fabricRef.current) {
@@ -80,7 +81,29 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
             }
         };
     }, []);
+    // made to get the image scale correct depending the size of the screen, was made to avoid the whitespace bug
+    const getScaleFactor = () => {
+        if (canvasDimensions.width === 0 || canvasDimensions.height === 0) return 0.5;
+        
+        // Use the container width for better scaling decisions
+        const containerWidth = window.innerWidth > 640 ? 400 : 300;
+        const containerHeight = 500; // Maximum reasonable height
+        
+        // Calculate scale based on both dimensions
+        return Math.min(
+            containerWidth / canvasDimensions.width,
+            containerHeight / canvasDimensions.height,
+            0.5 // cap at 0.5 scale
+        );
+    };
+    const getScalePercentage = (fontSize) => {
+        const scaleFactor = getScaleFactor();
+        const baseSize = fontSize;
+        // Scale up the font size inversely proportional to the image scale
+        return baseSize / scaleFactor;
+    }
     
+    const [fontSize, setFontSize] = useState(40)
     // resize canvas when dimensions change
     useEffect(() => {
         if (fabricRef.current) {
@@ -91,11 +114,12 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
             // add a textbox if it doesn't exist yet
             const existingTextboxes = fabricRef.current.getObjects().filter(obj => obj.type === 'textbox');
             if (existingTextboxes.length === 0) {
+                const scaledFontSize = getScalePercentage(fontSize);
                 const textbox = new fabric.Textbox('Sample Text', {
                     left: canvasDimensions.width / 2 - 100,
                     top: canvasDimensions.height / 2,
                     width: 200,
-                    fontSize: fontSize,
+                    fontSize: scaledFontSize,
                     fill: color,
                     backgroundColor: 'transparent',
                     fontFamily: font,
@@ -132,85 +156,123 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         
         console.log("Processing uploaded file:", uploadedFile.name);
         
-        // Step 1: Load the image using the browser's Image API first
-        const img = new Image();
-        const fileUrl = URL.createObjectURL(uploadedFile);
-        
-        img.onload = function() {
-            console.log("Browser image loaded:", img.width, "x", img.height);
+        const processImage = async (imageBlob) => {
+            // Step 1: Load the image using the browser's Image API first
+            const img = new Image();
+            const fileUrl = URL.createObjectURL(imageBlob);
             
-            // Calculate half size while maintaining aspect ratio
-            const maxWidth = img.width;
-            const maxHeight = img.height;
-            setImageLoaded(true)
-            // Update canvas dimensions to match image
-            setCanvasDimensions({
-                width: maxWidth,
-                height: maxHeight
-            });
-            
-            try {
-                // Step 2: Create a Fabric image object
-                const fabricImg = new fabric.FabricImage(img, {
-                    left: 0,
-                    top: 0,
-                    scaleX: maxWidth / img.width,
-                    scaleY: maxHeight / img.height,
-                    originX: 'left',
-                    originY: 'top',
-                    selectable: false,  // make image non-selectable so that user cannot move it around
-                    evented: false      // prevent all events on the image
+            img.onload = function() {
+                console.log("Browser image loaded:", img.width, "x", img.height);
+                
+                // Calculate dimensions - now applying to all devices
+                const MAX_DIMENSION = 1000; // Reduced from 1500 to 1000 for better performance
+                let maxWidth = img.width;
+                let maxHeight = img.height;
+
+                // Scale down large images regardless of device
+                if (maxWidth > MAX_DIMENSION || maxHeight > MAX_DIMENSION) {
+                    const aspectRatio = maxWidth / maxHeight;
+                    if (maxWidth > maxHeight) {
+                        maxWidth = MAX_DIMENSION;
+                        maxHeight = Math.round(MAX_DIMENSION / aspectRatio);
+                    } else {
+                        maxHeight = MAX_DIMENSION;
+                        maxWidth = Math.round(MAX_DIMENSION * aspectRatio);
+                    }
+                }
+
+                setImageLoaded(true)
+                // Update canvas dimensions to match image
+                setCanvasDimensions({
+                    width: maxWidth,
+                    height: maxHeight
                 });
                 
-                // clear canvas
-                fabricRef.current.clear();
-                
-                // add the image as a regular object first
-                fabricRef.current.add(fabricImg);
-                
-                // send it to back so text stays on top
-                fabricImg.sendToBack();
-                
-                console.log("Image added to canvas");
-                setImageLoaded(true);
-                fabricRef.current.renderAll();
-                
-            } catch (error) {
-                console.error("Error creating Fabric image:", error);
-                
-                // fallback: Try an alternative approach in case of deprecation
                 try {
-                    fabric.Image.fromURL(fileUrl, function(fabricImg) {
-                        fabricRef.current.clear();
-                        fabricRef.current.add(fabricImg);
-                        fabricImg.set({
-                            selectable: false,
-                            evented: false,
-                            scaleX: maxWidth / img.width,
-                            scaleY: maxHeight / img.height
-                        });
-                        fabricImg.scaleToWidth(maxWidth);
-                        fabricImg.scaleToHeight(maxHeight);
-                        fabricImg.sendToBack();
-                        fabricRef.current.renderAll();
-                        console.log("Image added using fallback method");
-                        setImageLoaded(true);
+                    // Step 2: Create a Fabric image object
+                    const fabricImg = new fabric.FabricImage(img, {
+                        left: 0,
+                        top: 0,
+                        scaleX: maxWidth / img.width,
+                        scaleY: maxHeight / img.height,
+                        originX: 'left',
+                        originY: 'top',
+                        selectable: false,
+                        evented: false
                     });
-                } catch (fallbackError) {
-                    console.error("Fallback also failed:", fallbackError);
+                    
+                    fabricRef.current.clear();
+                    fabricRef.current.add(fabricImg);
+                    fabricImg.sendToBack();
+                    
+                    console.log("Image added to canvas");
+                    setImageLoaded(true);
+                    fabricRef.current.renderAll();
+                    
+                } catch (error) {
+                    console.error("Error creating Fabric image:", error);
+                    
+                    try {
+                        fabric.Image.fromURL(fileUrl, function(fabricImg) {
+                            fabricRef.current.clear();
+                            fabricRef.current.add(fabricImg);
+                            fabricImg.set({
+                                selectable: false,
+                                evented: false,
+                                scaleX: maxWidth / img.width,
+                                scaleY: maxHeight / img.height
+                            });
+                            fabricImg.scaleToWidth(maxWidth);
+                            fabricImg.scaleToHeight(maxHeight);
+                            fabricImg.sendToBack();
+                            fabricRef.current.renderAll();
+                            console.log("Image added using fallback method");
+                            setImageLoaded(true);
+                        });
+                    } catch (fallbackError) {
+                        console.error("Fallback also failed:", fallbackError);
+                    }
                 }
+            };
+            
+            img.onerror = function() {
+                console.error("Failed to load image");
+            };
+            
+            img.src = fileUrl;
+            
+            return () => {
+                URL.revokeObjectURL(fileUrl);
+            };
+        };
+
+        const handleImage = async () => {
+            try {
+                let imageToProcess = uploadedFile;
+                
+                // Check if the file is HEIC/HEIF
+                if (uploadedFile.type === "image/heic" || 
+                    uploadedFile.type === "image/heif" || 
+                    uploadedFile.name.toLowerCase().endsWith('.heic') || 
+                    uploadedFile.name.toLowerCase().endsWith('.heif')) {
+                    setIsConverting(true);
+                    const convertedBlob = await heic2any({
+                        blob: uploadedFile,
+                        toType: "image/jpeg",
+                        quality: 0.8
+                    });
+                    imageToProcess = new Blob([convertedBlob], { type: "image/jpeg" });
+                    setIsConverting(false);
+                }
+                
+                await processImage(imageToProcess);
+            } catch (error) {
+                console.error("Error processing image:", error);
+                setIsConverting(false);
             }
         };
-        
-        img.onerror = function() {
-            console.error("Failed to load image");
-        };
-        
-        img.src = fileUrl;
-        
-        return () => {
-            URL.revokeObjectURL(fileUrl);
-        };
+
+        handleImage();
     }, [uploadedFile]);
     
     // made to handle changes in font size of textbox
@@ -218,7 +280,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         if (fabricRef.current) {
             const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
             if (textbox) {
-                textbox.set('fontSize', parseInt(fontSize));
+                textbox.set('fontSize', getScalePercentage(fontSize));
                 fabricRef.current.renderAll();
             }
         }
@@ -257,6 +319,44 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         }
     }, [font])
     
+    // Add this useEffect after your other effects
+useEffect(() => {
+    if (fabricRef.current) {
+        // Prevent automatic scrolling when textbox is clicked
+        fabricRef.current.on('text:editing:entered', function(e) {
+            // Store current scroll position
+            const scrollPos = {
+                x: window.scrollX,
+                y: window.scrollY
+            };
+            
+            // Use setTimeout to restore scroll position after browser's automatic scroll
+            setTimeout(() => {
+                window.scrollTo(scrollPos.x, scrollPos.y);
+            }, 0);
+        });
+        
+        // Also handle mousedown on the canvas to prevent default behavior
+        fabricRef.current.on('mouse:down', function(e) {
+            if (e.target && e.target.type === 'textbox') {
+                e.e.preventDefault();
+                
+                // Store current scroll position
+                const scrollPos = {
+                    x: window.scrollX,
+                    y: window.scrollY
+                };
+                
+                // Use setTimeout to restore scroll position
+                setTimeout(() => {
+                    window.scrollTo(scrollPos.x, scrollPos.y);
+                }, 0);
+            }
+        });
+    }
+}, []);
+
+
     // function made to download only the sample image
     const handleDownload = () => {
         if (!fabricRef.current) return;
@@ -327,21 +427,16 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
         document.body.removeChild(link);
     };
 
-    // made to get the image scale correct depending the size of the screen, was made to avoid the whitespace bug
-    const getScaleFactor = () => {
-        if (canvasDimensions.width === 0 || canvasDimensions.height === 0) return 0.5;
-        
-        const displayWidth = window.innerWidth > 640 ? 400 : 300; 
-        return Math.min(displayWidth / canvasDimensions.width, 0.5); // cap at 0.5 scale
-    };
 
     return (
-        <div className="flex flex-col my-[18rem]">
+        <div className="flex flex-col my-[18rem] ">
             <div className="bg-scribe-ivory w-full max-w-[70rem] flex-1 rounded-xl my-10 pb-10 mx-auto">
                 <h1 className="font-book text-2xl md:text-4xl px-2 py-3 font-bold">Preview</h1>
 
                 <div className="flex justify-center">
-                    {imageLoaded === true ? (
+                    {isConverting ? (
+                        <p className="text-orange-600 mb-2">Converting HEIC image...</p>
+                    ) : imageLoaded === true ? (
                         <p></p>
                     ) : uploadedFile ? (
                         <p className="text-orange-600 mb-2">Loading image...</p>
@@ -349,24 +444,27 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                 </div>
                 
                 {/* Canvas Area */}
-                <div className="flex justify-center items-center">
-                    <div className="relative" style={{
+                <div className="flex justify-center items-center overflow-hidden">
+                    <div className="relative overflow-hidden" style={{
                         width: canvasDimensions.width * getScaleFactor(), 
-                        height: canvasDimensions.height * getScaleFactor(),
-                        overflow: 'hidden'
+                        height: canvasDimensions.height * getScaleFactor()
                     }}>
                         <div style={{
                             transform: `scale(${getScaleFactor()})`,
                             transformOrigin: 'top left',
                             width: canvasDimensions.width,
-                            height: canvasDimensions.height
+                            height: canvasDimensions.height,
+                            position: 'absolute',
+                            top: 0,
+                            left: 0
                         }}>
                             <canvas 
                                 ref={canvasRef} 
                                 style={{ 
                                     border: '1px solid #ccc',
-                                    width: canvasDimensions.width,
-                                    height: canvasDimensions.height
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'block'
                                 }}
                             />
                         </div>
@@ -399,7 +497,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                         <div className='flex space-x-2'>
                             <input 
                                 type='file' 
-                                accept='.png,.jpg,.jpeg' 
+                                accept='.png,.jpg,.HEIC,.jpeg' 
                                 onChange={handleFileSelect} 
                                 required  
                                 className={`file:font-book file:border-0 file:bg-scribe-brown file:font-bold file:text-scribe-yellow file:w-full md:file:w-[8rem] file:rounded file:h-[4rem] file:transition-all file:duration-50 file:active:shadow-none file:cursor-pointer file:mr-4 w-full`}
@@ -425,7 +523,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                         />
                         <button className="w-[4rem] bg-scribe-green text-scribe-ivory rounded-r" onClick={handleNameAdd}>Add</button>
                     </div>
-                    
+
 
                     <div className="max-h-[200px] overflow-y-auto">
                         {names.map((name, key)=>(

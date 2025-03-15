@@ -8,7 +8,7 @@ import { Analytics } from "@vercel/analytics/react"
 
 
 function App() {
-
+  // use percentage to avoid scale displacement
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [Err, setErr] = useState(<></>);
@@ -43,7 +43,7 @@ function App() {
   }
 
   return (
-    <div className=''>
+    <div className='overflow-clip max-w-[100%] max-h-[100%]'>
 
       {/* intro */}
       <div className='flex flex-col justify-center items-center my-[18rem] space-y-5 duration-100 ease-in-out'>
