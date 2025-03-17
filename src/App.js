@@ -1,6 +1,7 @@
 import './App.css';
 import ScribeButton from './components/ScribeButton';
 import PreviewSection from './components/PreviewSection';
+import TutorialBox from './components/TutorialBox';
 import logo from './assets/Logo.svg'
 import gh from './assets/github.svg'
 import { useState } from 'react';
@@ -11,6 +12,7 @@ function App() {
   // use percentage to avoid scale displacement
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(true)
   const [Err, setErr] = useState(<></>);
 
   // this function checks if file is an image, saves the file if it is, alerts user if it is not
@@ -61,15 +63,18 @@ function App() {
 
       <Analytics/>
 
+      {/* Show tutorial box when preview is visible */}
+      {showTutorial && <TutorialBox showTutorial={showTutorial} setShowTutorial={setShowTutorial}/>}
+
       {/* Upload Section */}
       {!showPreview && <form onSubmit={(e)=>e.preventDefault()} id="upload" className='flex flex-col justify-center items-center my-[20rem]'>
   {Err}
-        <div className='bg-scribe-ivory w-fit p-1 sm:w-[40rem] h-[20rem] space-y-5 rounded justify-center items-center flex flex-col'>
+        <div id='upload' className='bg-scribe-ivory w-fit p-1 sm:w-[40rem] h-[20rem] space-y-5 rounded justify-center items-center flex flex-col'>
 
           <p className='text-scribe-gray font-book font-bold text-center text-2xl sm:text-4xl'>Upload Your Image</p>
           <div className='flex space-x-2 items-center justify-center' >
           <input 
-            id='upload'
+            
             type='file' 
             accept='.png,.jpg,.jpeg' 
             onChange={handleFileSelect} 
@@ -96,6 +101,7 @@ function App() {
           </a>
           <p className='text-scribe-brown font-book absolute bottom-0'>© 2025 Hamzah AlNofli. All rights reserved.</p>
         </div>
+
       </footer>
     </div>
   );
