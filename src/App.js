@@ -40,7 +40,6 @@ function App() {
       setShowPreview(true);
       setErr(<></>)
     } else {
-      setErr(<p className='text-[#f00]'>You have to upload your image first!</p>)
     }
   }
 

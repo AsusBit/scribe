@@ -290,6 +290,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
     // adding a name to the list
     const handleNameAdd = (e) => {
         setNames([...names, currentName])
+        setCurrentName("")
     }
 
     // deleting a name from the names list
@@ -494,7 +495,7 @@ useEffect(() => {
                 <form onSubmit={(e)=>e.preventDefault()} className='flex flex-col my-[2rem] px-4'>
                     <div className='bg-scribe-ivory space-y-5 rounded flex flex-col'>
                         <p className='text-scribe-gray font-book font-bold text-2xl md:text-4xl'>Reupload Your Image</p>
-                        <div className='flex space-x-2'>
+                        <div className='flex max-w-fit space-x-2'>
                             <input 
                                 type='file' 
                                 accept='.png,.jpg,.HEIC,.jpeg' 
@@ -509,13 +510,16 @@ useEffect(() => {
         {/* Customize area */}
                 <div className="px-4 py-3 space-y-2">
                     <h1 className="font-book text-2xl md:text-4xl font-bold">Customize</h1>
-
+                    <div className="flex items-center space-x-5">
                     <p className="font-finlandica font-bold text-lg md:text-xl">Names</p>
+                    {/*<ScribeButton size="lg" title={"Upload Names From Excel"}/>*/}
+                    </div>
                     <div className="flex w-full">
                         <input 
                             type="text" 
                             placeholder="Add a name" 
                             className="w-full py-2 rounded-l px-2 rounded-r-none border-[#000] border"
+                            value={currentName}
                             onChange={(e) => {
                                 setCurrentName(e.target.value);
                                 debouncedUpdateText(e.target.value);
