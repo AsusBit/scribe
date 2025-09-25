@@ -114,7 +114,6 @@ export default function FontDropdown({ onChange, value }) {
         // Latin Fonts
         { value: 'Gentium Book Plus', label: 'Gentium Book Plus', className: 'font-gentium' },
         { value: 'Finlandica', label: 'Finlandica', className: 'font-finlandica' },
-        { value: 'AA Tasneem Regular', label: 'AA Tasneem Regular', className: 'font-tasneem'},
         { value: 'Roboto', label: 'Roboto', className: 'font-roboto' },
         { value: 'Open Sans', label: 'Open Sans', className: 'font-opensans' },
         { value: 'Lato', label: 'Lato', className: 'font-lato' },
