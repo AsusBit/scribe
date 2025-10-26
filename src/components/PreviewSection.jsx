@@ -3,13 +3,16 @@ import * as fabric from 'fabric'
 import { useEffect, useRef, useState, useCallback } from "react"
 import FontDropdown from './FontDropdown'
 import JSZip from 'jszip'
+import jsPDF from "jspdf"
 import heic2any from 'heic2any'
+import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 
 export default function PreviewSection({uploadedFile, handleFileSelect}){
     const canvasRef = useRef(null)
     const fabricRef = useRef(null);
     const [names, setNames] = useState([])
-    const [color, setColor] = useState("#fff")
+    const [color, setColor] = useState("#FFFFFF")
     const [font, setFont] = useState("Arial")
     const [canvasDimensions, setCanvasDimensions] = useState({ width: 400, height: 400 });
     const [imageLoaded, setImageLoaded] = useState(false);
@@ -297,8 +300,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
     const handleNameDelete = (nameToDelete) => {
         setNames(names.filter(name => name !== nameToDelete));
     };
-    
-    // made to handle changes in text color of textbox
+
+     // made to handle changes in text color of textbox
     useEffect(()=>{    
         if (fabricRef.current) {
             const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
@@ -306,7 +309,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                 textbox.set('fill', color);
                 fabricRef.current.renderAll();
             }
-        }
+            }
     }, [color])
 
     // made to handle changes in font family of textbox
@@ -317,9 +320,67 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                 textbox.set('fontFamily', font);
                 fabricRef.current.renderAll();
             }
-        }
+             }
     }, [font])
-    
+    // new: import names from CSV / Excel (column "Names")
+    const handleNamesFileUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const getNamesFromRow = (row) => {
+            // try common header variants (case-insensitive)
+            return row['Names'] ?? row['names'] ?? row['Name'] ?? row['name'] ?? null;
+        };
+
+        try {
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+            let extracted = [];
+
+            if (ext === 'csv' || file.type === 'text/csv') {
+                Papa.parse(file, {
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: (results) => {
+                        extracted = results.data
+                            .map(getNamesFromRow)
+                            .filter(Boolean)
+                            .map(s => String(s).trim());
+                        if (extracted.length === 0) {
+                            alert('No "Names" column found in CSV.');
+                        } else {
+                            setNames(prev => [...prev, ...extracted]);
+                        }
+                    },
+                    error: (err) => {
+                        console.error('CSV parse error', err);
+                        alert('Failed to parse CSV');
+                    }
+                });
+            } else {
+                // Excel: use SheetJS
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+                extracted = json
+                    .map(getNamesFromRow)
+                    .filter(Boolean)
+                    .map(s => String(s).trim());
+
+                if (extracted.length === 0) {
+                    alert('No "Names" column found in Excel sheet.');
+                } else {
+                    setNames(prev => [...prev, ...extracted]);
+                }
+            }
+        } catch (err) {
+            console.error('Error reading names file', err);
+            alert('Failed to read names file');
+        } finally {
+            // clear input so same file can be re-uploaded if needed
+            e.target.value = '';
+        }
+    };
+
     // Add this useEffect after your other effects
 useEffect(() => {
     if (fabricRef.current) {
@@ -362,21 +423,44 @@ useEffect(() => {
     const handleDownload = () => {
         if (!fabricRef.current) return;
 
+        // enable smoothing on underlying canvas contexts
+        const enableSmoothing = () => {
+            const ctxs = [];
+            if (fabricRef.current.lowerCanvasEl) ctxs.push(fabricRef.current.lowerCanvasEl.getContext('2d'));
+            if (fabricRef.current.upperCanvasEl) ctxs.push(fabricRef.current.upperCanvasEl.getContext('2d'));
+            ctxs.forEach(ctx => {
+                if (!ctx) return;
+                ctx.imageSmoothingEnabled = true;
+                ctx.webkitImageSmoothingEnabled = true;
+                ctx.mozImageSmoothingEnabled = true;
+                ctx.msImageSmoothingEnabled = true;
+            });
+        };
+        enableSmoothing();
+
         // convert canvas to data URL and trigger download
         const dataURL = fabricRef.current.toDataURL({
             format: 'png',
             quality: 1,
-            multiplier: 1
+            multiplier: 3
         });
 
-        // create temp link and trigger download
-        const link = document.createElement('a');
-        link.download = `invitation-${Date.now()}.png`;
-        link.href = dataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const canvasWidth = fabricRef.current.getWidth();
+        const canvasHeight = fabricRef.current.getHeight();
+
+        const doc = new jsPDF({unit: 'px', format: [canvasWidth, canvasHeight]});
+
+        // beautiful function, thank you jsPDF.
+        doc.save(`invitation-${formatDate()}.pdf`)
     };
+
+    const formatDate = (date = new Date()) => {
+    const d = new Date(date);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+};
 
     // the holy function that takes the names, and stores the invitations in a zip and downloads.
     const handleDownloadAll = async () => {
@@ -386,6 +470,21 @@ useEffect(() => {
         
         // create a folder in the zip for the images
         const imagesFolder = zip.folder("invitations");
+
+        // enable smoothing once
+        const enableSmoothing = () => {
+            const ctxs = [];
+            if (fabricRef.current.lowerCanvasEl) ctxs.push(fabricRef.current.lowerCanvasEl.getContext('2d'));
+            if (fabricRef.current.upperCanvasEl) ctxs.push(fabricRef.current.upperCanvasEl.getContext('2d'));
+            ctxs.forEach(ctx => {
+                if (!ctx) return;
+                ctx.imageSmoothingEnabled = true;
+                ctx.webkitImageSmoothingEnabled = true;
+                ctx.mozImageSmoothingEnabled = true;
+                ctx.msImageSmoothingEnabled = true;
+            });
+        };
+        enableSmoothing();
 
         // create a promise array for all image generations
         const imagePromises = names.map(async (name) => {
@@ -404,11 +503,22 @@ useEffect(() => {
             const dataURL = fabricRef.current.toDataURL({
                 format: 'png',
                 quality: 1,
-                multiplier: 1
+                multiplier: 3
             });
 
-            // add to zip
-            imagesFolder.file(`${name}.png`, dataURL.split(',')[1], {base64: true});
+            const canvasWidth = fabricRef.current.getWidth();
+            const canvasHeight = fabricRef.current.getHeight();
+
+
+             // create PDF for this name
+            const doc = new jsPDF({ unit: 'px', format: [canvasWidth, canvasHeight] });
+            doc.addImage(dataURL, 'PNG', 0, 0, canvasWidth, canvasHeight);
+
+
+            // get blob and add to zip
+            const pdfBlob = doc.output('blob');
+            imagesFolder.file(`${name}.pdf`, pdfBlob);
+
 
             // restore original text
             textbox.set('text', originalText);
@@ -422,7 +532,7 @@ useEffect(() => {
         const content = await zip.generateAsync({type: "blob"});
         const link = document.createElement('a');
         link.href = URL.createObjectURL(content);
-        link.download = `invitations-${Date.now()}.zip`;
+        link.download = `invitations-${formatDate()}.zip`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -528,6 +638,17 @@ useEffect(() => {
                         <button className="w-[4rem] bg-scribe-green text-scribe-ivory rounded-r" onClick={handleNameAdd}>Add</button>
                     </div>
 
+                       <div className="mt-2">
+                           <label className="font-finlandica font-bold mr-2">Upload names (.csv, .xls, .xlsx)</label>
+                           <input
+                               type="file"
+                               accept=".csv,.xls,.xlsx"
+                               onChange={handleNamesFileUpload}
+                               className="ml-2 file:hover:cursor-pointer input:cursor-pointer"
+                           />
+                           <p className=" font-finlandica text-sm opacity-50">Make sure to put the names in "names" column!</p>
+                       </div>
+
 
                     <div className="max-h-[200px] overflow-y-auto">
                         {names.map((name, key)=>(
@@ -576,6 +697,13 @@ useEffect(() => {
                                 onClick={()=>setColor(col)}
                             />
                         ))}
+                    </div>
+                        <label for='custom color' className="font-finlandica font-bold text-lg md:text-xl grid">
+                            Custom Color:
+                            </label>
+                    <div className=" flex items-center">
+                            <input name="custom color" type="color"  className="w-10 h-10   rounded-sm hover:scale-110 transition-transform cursor-pointer" value={color} onChange={(e)=>setColor(e.target.value)}></input>
+                            <input type="text"  className=" bg-scribe-ivory max-w-fit py-2 rounded-l px-2 h-10" placeholder="Hex Value" value={color} onChange={(e)=>setColor(e.target.value)}></input>
                     </div>
                 </div>
         </div>
