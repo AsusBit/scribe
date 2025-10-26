@@ -12,9 +12,11 @@ Scribe is a web application that simplifies the process of creating personalized
   - Multiple font options
   - Adjustable font size
   - Various color choices
+  - Custom coloring using slider, RGB, or even Hexadecimal values
   - Draggable text positioning
   - Rotation and scaling capabilities
 - **Batch Processing**: Generate multiple personalized invitations at once
+- **Processing Lists of Names**: Using sheets from either .CSV or Excel sheets
 - **Bulk Download**: Download all variations as a ZIP file
 - **Responsive Design**: Works on both desktop and mobile devices
 
@@ -29,7 +31,7 @@ Scribe is a web application that simplifies the process of creating personalized
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/scribe.git
+git clone https://github.com/AsusBit/scribe.git
 ```
 
 2. Navigate to the project directory:
@@ -66,6 +68,9 @@ The application will open in your default browser at `http://localhost:3000`.
 - [Fabric.js](http://fabricjs.com/) - Canvas manipulation
 - [Tailwind CSS](https://tailwindcss.com/) - Styling
 - [JSZip](https://stuk.github.io/jszip/) - ZIP file generation
+- [jsPDF](https://github.com/parallax/jsPDF) - Turning the pictures into installable PDFs
+- [papaparse](https://github.com/mholt/PapaParse) - Parsing names from CSV files
+- [SheetJS](https://www.npmjs.com/package/xlsx) - Parsing names from Excel sheets
 
 
 ## Contributing
@@ -86,17 +91,12 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 - Font families provided by Google Fonts
 - Icons and design inspiration from various open-source projects (svgrepo.com)
 
-## Contact
-
-Hamzah AlNofli - hamzahalnofli@protonmail.com
-
 Project Link: [https://scribe-one.vercel.app/](https://scribe-one.vercel.app/)
 
 ## Future Enhancements
 
 - Additional font options
 - More customization tools
-- Loading name lists from CSV or XLSX files
 
 ---
 
