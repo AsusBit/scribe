@@ -82,10 +82,6 @@ The application will open in your default browser at `http://localhost:3000`.
 5. Open a Pull Request
    
 
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
 ## Acknowledgments
 
 - Font families provided by Google Fonts
