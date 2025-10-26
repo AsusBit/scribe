@@ -2,7 +2,7 @@
 
 ![Scribe Logo](public/logo192.png)
 
-Scribe is a web application that simplifies the process of creating personalized invitations for multiple recipients. Upload a single invitation design and customize it for each guest with just a few clicks.
+It takes effort and time to write down every person's name on your invitation template. So I have made this app to take your list of names, make you choose where you want to place them, with their styles and all, and finally downloads all of your names into a zip.
 
 ## Features
 
