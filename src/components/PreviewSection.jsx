@@ -18,6 +18,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
     const [imageLoaded, setImageLoaded] = useState(false);
     const [currentName, setCurrentName] = useState("Sample Text")
     const [isConverting, setIsConverting] = useState(false);
+    const [customColumnName, setCustomColumnName] = useState("");
     const debounceTimer = useRef(null);
     const colorsAll = [
         "#000000", // Black
@@ -119,7 +120,7 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
             if (existingTextboxes.length === 0) {
                 const scaledFontSize = getScalePercentage(fontSize);
                 const textbox = new fabric.Textbox('Sample Text', {
-                    left: canvasDimensions.width / 2 - 100,
+                    left: canvasDimensions.width / 2,
                     top: canvasDimensions.height / 2,
                     width: 200,
                     fontSize: scaledFontSize,
@@ -130,7 +131,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                     transparentCorners: false,
                     editable: true,
                     lockUniScaling: true,
-                    centerTransform: true,
+                    originX: 'center',
+                    originY: 'center',
                     snapAngle: 45,
                     padding: 10,
                     hasControls: true,
@@ -322,12 +324,33 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
             }
              }
     }, [font])
-    // new: import names from CSV / Excel (column "Names")
+
+    // update preview text to show longest name
+    useEffect(() => {
+        if (fabricRef.current && names.length > 0) {
+            const textbox = fabricRef.current.getObjects().find(obj => obj.type === 'textbox');
+            if (textbox) {
+                // find the longest name
+                const longestName = names.reduce((longest, current) => 
+                    current.length > longest.length ? current : longest
+                );
+                textbox.set('text', longestName);
+                fabricRef.current.renderAll();
+            }
+        }
+    }, [names])
+    // new: import names from CSV / Excel (column "name")
     const handleNamesFileUpload = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        
+        // Use custom column name if provided, otherwise use default variants
         const getNamesFromRow = (row) => {
-            // try common header variants (case-insensitive)
+            if (customColumnName.trim()) {
+                // If custom column name is provided, use only that
+                return row[customColumnName];
+            }
+            // Otherwise use the default column variants (case-insensitive)
             return row['Names'] ?? row['names'] ?? row['Name'] ?? row['name'] ?? null;
         };
 
@@ -345,7 +368,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                             .filter(Boolean)
                             .map(s => String(s).trim());
                         if (extracted.length === 0) {
-                            alert('No "Names" column found in CSV.');
+                            const colName = customColumnName.trim() || '"Names", "name", etc.';
+                            alert(`No names found in column "${colName}"`);
                         } else {
                             setNames(prev => [...prev, ...extracted]);
                         }
@@ -367,7 +391,8 @@ export default function PreviewSection({uploadedFile, handleFileSelect}){
                     .map(s => String(s).trim());
 
                 if (extracted.length === 0) {
-                    alert('No "Names" column found in Excel sheet.');
+                    const colName = customColumnName.trim() || '"Names", "name", etc.';
+                    alert(`No names found in column "${colName}"`);
                 } else {
                     setNames(prev => [...prev, ...extracted]);
                 }
@@ -438,17 +463,28 @@ useEffect(() => {
         };
         enableSmoothing();
 
-        // convert canvas to data URL and trigger download
-        const dataURL = fabricRef.current.toDataURL({
-            format: 'png',
-            quality: 1,
-            multiplier: 3
-        });
-
         const canvasWidth = fabricRef.current.getWidth();
         const canvasHeight = fabricRef.current.getHeight();
 
-        const doc = new jsPDF({unit: 'px', format: [canvasWidth, canvasHeight]});
+        // export at native resolution for crisp PDFs
+        const dataURL = fabricRef.current.toDataURL({
+            format: 'png',
+            quality: 1,
+            multiplier: 1  // export at actual canvas size (native resolution)
+        });
+
+        // create PDF with exact canvas dimensions (aspect ratio preserved)
+        // use mm units for better sizing control
+        const widthMm = canvasWidth * 0.264583; // convert px to mm (1px ≈ 0.264583mm at 96dpi)
+        const heightMm = canvasHeight * 0.264583;
+        const doc = new jsPDF({
+            orientation: canvasWidth >= canvasHeight ? 'landscape' : 'portrait',
+            unit: 'mm',
+            format: [widthMm, heightMm]
+        });
+
+        // add image to fill the entire page
+        doc.addImage(dataURL, 'PNG', 0, 0, widthMm, heightMm);
 
         // beautiful function, thank you jsPDF.
         doc.save(`invitation-${formatDate()}.pdf`)
@@ -486,6 +522,11 @@ useEffect(() => {
         };
         enableSmoothing();
 
+        const canvasWidth = fabricRef.current.getWidth();
+        const canvasHeight = fabricRef.current.getHeight();
+        const widthMm = canvasWidth * 0.264583;
+        const heightMm = canvasHeight * 0.264583;
+
         // create a promise array for all image generations
         const imagePromises = names.map(async (name) => {
             // find the textbox location
@@ -499,26 +540,24 @@ useEffect(() => {
             textbox.set('text', name);
             fabricRef.current.renderAll();
 
-            // generate data URL for this name
+            // generate data URL for this name at native resolution
             const dataURL = fabricRef.current.toDataURL({
                 format: 'png',
                 quality: 1,
-                multiplier: 3
+                multiplier: 1  // export at actual canvas size (native resolution)
             });
 
-            const canvasWidth = fabricRef.current.getWidth();
-            const canvasHeight = fabricRef.current.getHeight();
-
-
-             // create PDF for this name
-            const doc = new jsPDF({ unit: 'px', format: [canvasWidth, canvasHeight] });
-            doc.addImage(dataURL, 'PNG', 0, 0, canvasWidth, canvasHeight);
-
+            // create PDF for this name with correct aspect ratio
+            const doc = new jsPDF({
+                orientation: canvasWidth >= canvasHeight ? 'landscape' : 'portrait',
+                unit: 'mm',
+                format: [widthMm, heightMm]
+            });
+            doc.addImage(dataURL, 'PNG', 0, 0, widthMm, heightMm);
 
             // get blob and add to zip
             const pdfBlob = doc.output('blob');
             imagesFolder.file(`${name}.pdf`, pdfBlob);
-
 
             // restore original text
             textbox.set('text', originalText);
@@ -646,7 +685,19 @@ useEffect(() => {
                                onChange={handleNamesFileUpload}
                                className="ml-2 file:hover:cursor-pointer input:cursor-pointer"
                            />
-                           <p className=" font-finlandica text-sm opacity-50">Make sure to put the names in "names" column!</p>
+                           <p className=" font-finlandica text-sm opacity-50">Default columns: "Names", "name", "Name", "names"</p>
+                       </div>
+
+                       <div className="mt-2">
+                           <label className="font-finlandica font-bold block mb-1">Custom column name (optional)</label>
+                           <input
+                               type="text"
+                               placeholder="e.g., Employee, Person, Full Name"
+                               value={customColumnName}
+                               onChange={(e) => setCustomColumnName(e.target.value)}
+                               className="w-full py-2 px-2 border border-[#000] rounded"
+                           />
+                           <p className=" font-finlandica text-sm opacity-50">Leave empty to use default columns</p>
                        </div>
 
 
